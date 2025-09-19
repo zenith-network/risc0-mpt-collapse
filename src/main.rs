@@ -1,26 +1,58 @@
 use std::borrow::Borrow;
 
+use alloy_primitives::{FixedBytes, b256};
 use alloy_trie::proof::ProofRetainer;
 
 fn main() {
   // Define list of items that we want to store in MPT.
-  let items: Vec<(&'static str, &'static str)> = vec![
-    ("painting", "place"),
-    ("guest", "ship"),
-    ("mud", "leave"),
-    ("paper", "call"),
-    ("gate", "boast"),
-    ("tongue", "gain"),
-    ("baseball", "wait"),
-    ("tale", "lie"),
-    ("mood", "cope"),
-    ("menu", "fear"),
+  // In storage tries all keys are exactly 32 bytes long.
+  let items: Vec<(FixedBytes<32>, Vec<u8>)> = vec![
+    (
+      b256!("0x0000000000000000000000000000000000000000000000000000000000000001"),
+      b"place".to_vec(),
+    ),
+    (
+      b256!("0x0000000000000000000000000000000000000000000000000000000000000002"),
+      b"ship".to_vec(),
+    ),
+    (
+      b256!("0x0000000000000000000000000000000000000000000000000000000000000003"),
+      b"leave".to_vec(),
+    ),
+    (
+      b256!("0x0000000000000000000000000000000000000000000000000000000000000004"),
+      b"call".to_vec(),
+    ),
+    (
+      b256!("0x0000000000000000000000000000000000000000000000000000000000000005"),
+      b"boast".to_vec(),
+    ),
+    (
+      b256!("0x0000000000000000000000000000000000000000000000000000000000000006"),
+      b"gain".to_vec(),
+    ),
+    (
+      b256!("0x0000000000000000000000000000000000000000000000000000000000000007"),
+      b"wait".to_vec(),
+    ),
+    (
+      b256!("0x0000000000000000000000000000000000000000000000000000000000000008"),
+      b"lie".to_vec(),
+    ),
+    (
+      b256!("0x0000000000000000000000000000000000000000000000000000000000000009"),
+      b"cope".to_vec(),
+    ),
+    (
+      b256!("0x000000000000000000000000000000000000000000000000000000000000000a"),
+      b"fear".to_vec(),
+    ),
   ];
-  println!("Items: {:?}", items);
+  //println!("Items: {:?}", items);
 
   // Requirement of alloy-trie: items MUST be sorted by key nibbles.
   let mut sorted_items: Vec<_> = items.into_iter().collect();
-  sorted_items.sort_by(|a, b| a.borrow().0.cmp(b.borrow().0.as_ref()));
+  sorted_items.sort_by(|a, b| a.borrow().0.cmp(&b.borrow().0));
   //println!("Sorted items: {:?}", sorted_items);
 
   // Me want to reatin proof for all nodes.
