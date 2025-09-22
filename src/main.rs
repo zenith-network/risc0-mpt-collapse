@@ -3,6 +3,50 @@ use std::borrow::Borrow;
 use alloy_primitives::{FixedBytes, b256};
 use alloy_trie::proof::ProofRetainer;
 
+
+fn alloy_hash_with_rlp<K: AsRef<[u8]> + Ord, V: AsRef<[u8]>>(
+  items: &Vec<(K, V)>,
+) -> (alloy_primitives::B256, Vec<alloy_primitives::Bytes>) {
+  // Requirement of alloy-trie: items MUST be sorted by key nibbles.
+  let mut sorted_items: Vec<(&K, &V)> = items.iter().map(|(k, v)| (k, v)).collect();
+  sorted_items.sort_by(|a, b| a.borrow().0.cmp(&b.borrow().0));
+  //println!("Sorted items: {:?}", sorted_items);
+
+  // Me want to reatin proof for all nodes.
+  let proof_key_paths = sorted_items
+    .iter()
+    .map(|item| alloy_trie::Nibbles::unpack(item.borrow().0))
+    .collect();
+  //println!("Proof key paths: {:?}", proof_key_paths);
+
+  // Create alloy trie hasher, with proof reatiner.
+  let hb = alloy_trie::HashBuilder::default();
+  let proof_retainer = ProofRetainer::new(proof_key_paths);
+  let mut hb = hb.with_proof_retainer(proof_retainer);
+
+  // Push trie items.
+  for (key, val) in sorted_items.iter() {
+    //println!("Adding item..");
+    hb.add_leaf(alloy_trie::Nibbles::unpack(key), val.as_ref());
+  }
+
+  // Compute root to finalize internal state and make proof nodes available.
+  let root_hash = hb.root();
+  //println!("Alloy-trie root hash: {:?}", alloy_root);
+
+  // Get RLP from proof nodes.
+  let rlp_nodes: Vec<alloy_primitives::Bytes> = hb
+    .take_proof_nodes()
+    .into_nodes_sorted()
+    .into_iter()
+    .map(|(_, rlp)| rlp)
+    .collect();
+  //println!("Recovered RLP nodes: {:?}", rlp_nodes);
+  //println!("Alloy-trie num nodes: {}", rlp_nodes.len());
+
+  (root_hash, rlp_nodes)
+}
+
 fn main() {
   // Define list of items that we want to store in MPT.
   // In storage tries all keys are exactly 32 bytes long.
@@ -26,43 +70,8 @@ fn main() {
   ];
   //println!("Items: {:?}", items);
 
-  // Requirement of alloy-trie: items MUST be sorted by key nibbles.
-  let mut sorted_items: Vec<_> = items.into_iter().collect();
-  sorted_items.sort_by(|a, b| a.borrow().0.cmp(&b.borrow().0));
-  //println!("Sorted items: {:?}", sorted_items);
-
-  // Me want to reatin proof for all nodes.
-  let proof_keys = sorted_items
-    .iter()
-    .map(|item| alloy_trie::Nibbles::unpack(item.borrow().0))
-    .collect();
-  //println!("Proof keys: {:?}", proof_keys);
-
-  // Create alloy trie hasher, with proof reatiner.
-  let hb = alloy_trie::HashBuilder::default();
-  let proof_retainer = ProofRetainer::new(proof_keys);
-  let mut hb = hb.with_proof_retainer(proof_retainer);
-
-  // Add items to MPT.
-  for (key, val) in sorted_items.iter() {
-    //println!("Adding item..");
-    hb.add_leaf(alloy_trie::Nibbles::unpack(key), val.as_ref());
-  }
-
-  // Trigger root computation.
-  // NOTE: It will allow getting proof nodes.
-  let alloy_root = hb.root();
-  println!("Alloy-trie root hash: {:?}", alloy_root);
-
-  // Get RLP from proof nodes.
-  let rlp_nodes: Vec<alloy_primitives::Bytes> = hb
-    .take_proof_nodes()
-    .into_nodes_sorted()
-    .into_iter()
-    .map(|(_, rlp)| rlp)
-    .collect();
-  //println!("Recovered RLP nodes: {:?}", rlp_nodes);
-  println!("Alloy-trie num nodes: {}", rlp_nodes.len());
+  let (alloy_hash, rlp_nodes) = alloy_hash_with_rlp(&items);
+  println!("Alloy hash: {:?}", alloy_hash);
 
   // Build risc0 trie from RLP.
   let r0_trie = risc0_ethereum_trie::Trie::from_rlp(rlp_nodes).unwrap();
