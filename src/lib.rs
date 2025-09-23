@@ -49,12 +49,9 @@ mod tests {
   /// Helper function that checks root hash consistency for a given key set
   /// with and without a dummy key. Ensures compatibility with both Alloy and Risc0 implementations.
   fn check_trie_consistency_with_dummy(
-    test_name: &str,
     keys: Vec<(alloy_primitives::B256, Vec<u8>)>,
     dummy_key: alloy_primitives::B256,
   ) {
-    println!("\n=== Running test: {} ===", test_name);
-
     let mut keys_with_dummy = keys.clone();
     keys_with_dummy.push((dummy_key, b"dummy".to_vec()));
 
@@ -89,7 +86,7 @@ mod tests {
   }
 
   #[test]
-  fn test_case1_branch_orphaned_branch_branch() {
+  fn test_case1_collapse_with_parent_branch_and_child_branch() {
     let keys = vec![
       (
         b256!("0xABC1000000000000000000000000000000000000000000000000000000000000"),
@@ -105,11 +102,11 @@ mod tests {
       ),
     ];
     let dummy_key = b256!("0xA0FF000000000000000000000000000000000000000000000000000000000000");
-    check_trie_consistency_with_dummy("case1_branch_orphaned_branch_branch", keys, dummy_key);
+    check_trie_consistency_with_dummy(keys, dummy_key);
   }
 
   #[test]
-  fn test_case2_branch_orphaned_branch_extension() {
+  fn test_case2_collapse_with_parent_branch_and_child_extension() {
     let keys = vec![
       (
         b256!("0xAB3C100000000000000000000000000000000000000000000000000000000000"),
@@ -125,11 +122,11 @@ mod tests {
       ),
     ];
     let dummy_key = b256!("0xA0FFF00000000000000000000000000000000000000000000000000000000000");
-    check_trie_consistency_with_dummy("case2_branch_orphaned_branch_extension", keys, dummy_key);
+    check_trie_consistency_with_dummy(keys, dummy_key);
   }
 
   #[test]
-  fn test_case3_branch_orphaned_branch_leaf() {
+  fn test_case3_collapse_with_parent_branch_and_child_leaf() {
     let keys = vec![
       (
         b256!("0xAB10000000000000000000000000000000000000000000000000000000000000"),
@@ -141,11 +138,11 @@ mod tests {
       ),
     ];
     let dummy_key = b256!("0xA0F0000000000000000000000000000000000000000000000000000000000000");
-    check_trie_consistency_with_dummy("case3_branch_orphaned_branch_leaf", keys, dummy_key);
+    check_trie_consistency_with_dummy(keys, dummy_key);
   }
 
   #[test]
-  fn test_case4_extension_orphaned_branch_branch() {
+  fn test_case4_collapse_with_parent_extension_and_child_branch() {
     let keys = vec![
       (
         b256!("0xABC1000000000000000000000000000000000000000000000000000000000000"),
@@ -157,11 +154,11 @@ mod tests {
       ),
     ];
     let dummy_key = b256!("0xA0FF000000000000000000000000000000000000000000000000000000000000");
-    check_trie_consistency_with_dummy("case4_extension_orphaned_branch_branch", keys, dummy_key);
+    check_trie_consistency_with_dummy(keys, dummy_key);
   }
 
   #[test]
-  fn test_case5_extension_orphaned_branch_extension() {
+  fn test_case5_collapse_with_parent_extension_and_child_extension() {
     let keys = vec![
       (
         b256!("0xAB3C100000000000000000000000000000000000000000000000000000000000"),
@@ -173,16 +170,16 @@ mod tests {
       ),
     ];
     let dummy_key = b256!("0xA0FFF00000000000000000000000000000000000000000000000000000000000");
-    check_trie_consistency_with_dummy("case5_extension_orphaned_branch_extension", keys, dummy_key);
+    check_trie_consistency_with_dummy(keys, dummy_key);
   }
 
   #[test]
-  fn test_case6_extension_orphaned_branch_leaf() {
+  fn test_case6_collapse_with_parent_extension_and_child_leaf() {
     let keys = vec![(
       b256!("0xAB10000000000000000000000000000000000000000000000000000000000000"),
       b"1".to_vec(),
     )];
     let dummy_key = b256!("0xA0F0000000000000000000000000000000000000000000000000000000000000");
-    check_trie_consistency_with_dummy("case6_extension_orphaned_branch_leaf", keys, dummy_key);
+    check_trie_consistency_with_dummy(keys, dummy_key);
   }
 }
