@@ -1,32 +1,35 @@
+/// Builds an Alloy trie with merkle proof for all nodes
+///
+/// # Arguments
+/// * `items` - Key-value pairs to insert into the trie
+///
+/// # Returns
+/// * Root hash and RLP-encoded proof nodes
 pub fn build_alloy_trie_with_proof<K: AsRef<[u8]> + Ord, V: AsRef<[u8]>>(
-  items: &Vec<(K, V)>,
+  items: &[(K, V)],
 ) -> (alloy_primitives::B256, Vec<alloy_primitives::Bytes>) {
-  // Requirement of alloy-trie: items MUST be sorted by key nibbles.
+  // Sort items by nibble representation (required by alloy-trie hasher).
   let mut sorted_items = items.iter().collect::<Vec<_>>();
   sorted_items.sort_by_key(|(k, _)| alloy_trie::Nibbles::unpack(k.as_ref()));
-  //println!("Sorted items: {:?}", sorted_items);
 
-  // Me want to retain proof for all nodes.
+  // Collect all key paths for proof generation.
   let proof_key_paths = sorted_items
     .iter()
     .map(|(k, _)| alloy_trie::Nibbles::unpack(k.as_ref()))
     .collect();
-  //println!("Proof key paths: {:?}", proof_key_paths);
 
   // Create alloy trie hasher, with proof retainer.
   let hb = alloy_trie::HashBuilder::default();
   let proof_retainer = alloy_trie::proof::ProofRetainer::new(proof_key_paths);
   let mut hb = hb.with_proof_retainer(proof_retainer);
 
-  // Push trie items.
-  for (key, val) in sorted_items.iter() {
-    //println!("Adding item..");
+  // PInsert all items.
+  for (key, val) in sorted_items {
     hb.add_leaf(alloy_trie::Nibbles::unpack(key), val.as_ref());
   }
 
   // Compute root to finalize internal state and make proof nodes available.
   let root_hash = hb.root();
-  //println!("Alloy-trie root hash: {:?}", alloy_root);
 
   // Get RLP from proof nodes.
   let rlp_nodes: Vec<alloy_primitives::Bytes> = hb
@@ -35,8 +38,6 @@ pub fn build_alloy_trie_with_proof<K: AsRef<[u8]> + Ord, V: AsRef<[u8]>>(
     .into_iter()
     .map(|(_, rlp)| rlp)
     .collect();
-  //println!("Recovered RLP nodes: {:?}", rlp_nodes);
-  //println!("Alloy-trie num nodes: {}", rlp_nodes.len());
 
   (root_hash, rlp_nodes)
 }
