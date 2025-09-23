@@ -1,6 +1,4 @@
-use alloy_primitives::{FixedBytes, b256};
-
-fn build_alloy_trie_with_proof<K: AsRef<[u8]> + Ord, V: AsRef<[u8]>>(
+pub fn build_alloy_trie_with_proof<K: AsRef<[u8]> + Ord, V: AsRef<[u8]>>(
   items: &Vec<(K, V)>,
 ) -> (alloy_primitives::B256, Vec<alloy_primitives::Bytes>) {
   // Requirement of alloy-trie: items MUST be sorted by key nibbles.
@@ -41,39 +39,6 @@ fn build_alloy_trie_with_proof<K: AsRef<[u8]> + Ord, V: AsRef<[u8]>>(
   //println!("Alloy-trie num nodes: {}", rlp_nodes.len());
 
   (root_hash, rlp_nodes)
-}
-
-fn main() {
-  // Define list of items that we want to store in MPT.
-  // In storage tries all keys are exactly 32 bytes long.
-  let items: Vec<(FixedBytes<32>, Vec<u8>)> = vec![
-    (
-      b256!("0xDAB0000000000000000000000000000000000000000000000000000000000000"),
-      b"place".to_vec(),
-    ),
-    (
-      b256!("0xDAC0000000000000000000000000000000000000000000000000000000000000"),
-      b"ship".to_vec(),
-    ),
-    (
-      b256!("0xEAB0000000000000000000000000000000000000000000000000000000000000"),
-      b"leave".to_vec(),
-    ),
-    (
-      b256!("0xEAC0000000000000000000000000000000000000000000000000000000000000"),
-      b"call".to_vec(),
-    ),
-  ];
-  //println!("Items: {:?}", items);
-
-  let (alloy_hash, rlp_nodes) = build_alloy_trie_with_proof(&items);
-  println!("Alloy hash: {:?}", alloy_hash);
-
-  // Build risc0 trie from RLP.
-  let r0_trie = risc0_ethereum_trie::Trie::from_rlp(rlp_nodes).unwrap();
-  let r0_hash = r0_trie.hash_slow();
-  println!("Risc0 root hash: {:?}", r0_hash);
-  println!("Risc0 num nodes: {}", r0_trie.size());
 }
 
 #[cfg(test)]
