@@ -44,19 +44,18 @@ pub fn build_alloy_trie_with_proof<K: AsRef<[u8]> + Ord, V: AsRef<[u8]>>(
 
 #[cfg(test)]
 mod tests {
-  use alloy_primitives::b256;
   use risc0_ethereum_trie::Trie;
 
   /// Helper function that checks root hash consistency for a given key set
-  /// with and without a dummy key. Ensures compatibility with both Alloy and Risc0 implementations.
-  fn check_trie_consistency_with_dummy(
+  /// with and without a removee key. Ensures compatibility with both Alloy and Risc0 implementations.
+  fn check_trie_consistency_with_removee(
     keys: Vec<(alloy_primitives::B256, Vec<u8>)>,
-    dummy_key: alloy_primitives::B256,
+    removee_key: alloy_primitives::B256,
   ) {
-    let mut keys_with_dummy = keys.clone();
-    keys_with_dummy.push((dummy_key, b"dummy".to_vec()));
+    let mut keys_with_removee = keys.clone();
+    keys_with_removee.push((removee_key, b"removee".to_vec()));
 
-    // Build trie without dummy key
+    // Build trie without removee key.
     let (alloy_hash_before, rlp_nodes_before) = super::build_alloy_trie_with_proof(&keys);
     println!("Alloy hash before: {:?}", alloy_hash_before);
 
@@ -65,8 +64,9 @@ mod tests {
     println!("Risc0 root hash before: {:?}", r0_hash_before);
     assert_eq!(alloy_hash_before, r0_hash_before);
 
-    // Build trie with dummy key
-    let (alloy_hash_after, rlp_nodes_after) = super::build_alloy_trie_with_proof(&keys_with_dummy);
+    // Build trie with removee key.
+    let (alloy_hash_after, rlp_nodes_after) =
+      super::build_alloy_trie_with_proof(&keys_with_removee);
     println!("Alloy hash after: {:?}", alloy_hash_after);
 
     let r0_trie_after = Trie::from_rlp(rlp_nodes_after).unwrap();
@@ -74,113 +74,71 @@ mod tests {
     println!("Risc0 root hash after: {:?}", r0_hash_after);
     assert_eq!(alloy_hash_after, r0_hash_after);
 
-    // Remove dummy key from Risc0 trie and compare
+    // Get rid of removee key from the latter Risc0 trie and compare.
     let mut r0_trie_modified = r0_trie_after;
-    let is_removed = r0_trie_modified.remove(&dummy_key);
+    let is_removed = r0_trie_modified.remove(&removee_key);
     assert_eq!(true, is_removed);
     let r0_hash_modified = r0_trie_modified.hash_slow();
     println!(
-      "Risc0 root hash after dummy key removal: {:?}",
+      "Risc0 root hash after removee key removal: {:?}",
       r0_hash_modified
     );
     assert_eq!(r0_hash_modified, r0_hash_before);
   }
 
+  /// Helper function to create a B256 from a hex string, automatically right-padding with zeros.
+  fn key_from_nibbles(path: &str) -> alloy_primitives::B256 {
+    let path_padded: String = format!("{:0<64}", path);
+    path_padded.parse().expect("Invalid hex string")
+  }
+
+  /// Create test data with cleaner key definitions
+  fn create_test_data(key_specs: &[(&str, &str)]) -> Vec<(alloy_primitives::B256, Vec<u8>)> {
+    key_specs
+      .iter()
+      .map(|(key_hex, value)| (key_from_nibbles(key_hex), value.as_bytes().to_vec()))
+      .collect()
+  }
+
   #[test]
   fn test_case1_collapse_with_parent_branch_and_child_branch() {
-    let keys = vec![
-      (
-        b256!("0xABC1000000000000000000000000000000000000000000000000000000000000"),
-        b"1".to_vec(),
-      ),
-      (
-        b256!("0xABD2000000000000000000000000000000000000000000000000000000000000"),
-        b"2".to_vec(),
-      ),
-      (
-        b256!("0xE999000000000000000000000000000000000000000000000000000000000000"),
-        b"3".to_vec(),
-      ),
-    ];
-    let dummy_key = b256!("0xA0FF000000000000000000000000000000000000000000000000000000000000");
-    check_trie_consistency_with_dummy(keys, dummy_key);
+    let keys = create_test_data(&[("ABC1", "1"), ("ABD2", "2"), ("E999", "3")]);
+    let removee_key = key_from_nibbles("A0FF");
+    check_trie_consistency_with_removee(keys, removee_key);
   }
 
   #[test]
   fn test_case2_collapse_with_parent_branch_and_child_extension() {
-    let keys = vec![
-      (
-        b256!("0xAB3C100000000000000000000000000000000000000000000000000000000000"),
-        b"1".to_vec(),
-      ),
-      (
-        b256!("0xAB3D200000000000000000000000000000000000000000000000000000000000"),
-        b"2".to_vec(),
-      ),
-      (
-        b256!("0xE999900000000000000000000000000000000000000000000000000000000000"),
-        b"3".to_vec(),
-      ),
-    ];
-    let dummy_key = b256!("0xA0FFF00000000000000000000000000000000000000000000000000000000000");
-    check_trie_consistency_with_dummy(keys, dummy_key);
+    let keys = create_test_data(&[("AB3C1", "1"), ("AB3D2", "2"), ("E9999", "3")]);
+    let removee_key = key_from_nibbles("A0FFF");
+    check_trie_consistency_with_removee(keys, removee_key);
   }
 
   #[test]
   fn test_case3_collapse_with_parent_branch_and_child_leaf() {
-    let keys = vec![
-      (
-        b256!("0xAB10000000000000000000000000000000000000000000000000000000000000"),
-        b"1".to_vec(),
-      ),
-      (
-        b256!("0xE990000000000000000000000000000000000000000000000000000000000000"),
-        b"2".to_vec(),
-      ),
-    ];
-    let dummy_key = b256!("0xA0F0000000000000000000000000000000000000000000000000000000000000");
-    check_trie_consistency_with_dummy(keys, dummy_key);
+    let keys = create_test_data(&[("AB1", "1"), ("E99", "2")]);
+    let removee_key = key_from_nibbles("A0F");
+    check_trie_consistency_with_removee(keys, removee_key);
   }
 
   #[test]
   fn test_case4_collapse_with_parent_extension_and_child_branch() {
-    let keys = vec![
-      (
-        b256!("0xABC1000000000000000000000000000000000000000000000000000000000000"),
-        b"1".to_vec(),
-      ),
-      (
-        b256!("0xABD2000000000000000000000000000000000000000000000000000000000000"),
-        b"2".to_vec(),
-      ),
-    ];
-    let dummy_key = b256!("0xA0FF000000000000000000000000000000000000000000000000000000000000");
-    check_trie_consistency_with_dummy(keys, dummy_key);
+    let keys = create_test_data(&[("ABC1", "1"), ("ABD2", "2")]);
+    let removee_key = key_from_nibbles("A0FF");
+    check_trie_consistency_with_removee(keys, removee_key);
   }
 
   #[test]
   fn test_case5_collapse_with_parent_extension_and_child_extension() {
-    let keys = vec![
-      (
-        b256!("0xAB3C100000000000000000000000000000000000000000000000000000000000"),
-        b"1".to_vec(),
-      ),
-      (
-        b256!("0xAB3D200000000000000000000000000000000000000000000000000000000000"),
-        b"2".to_vec(),
-      ),
-    ];
-    let dummy_key = b256!("0xA0FFF00000000000000000000000000000000000000000000000000000000000");
-    check_trie_consistency_with_dummy(keys, dummy_key);
+    let keys = create_test_data(&[("AB3C1", "1"), ("AB3D2", "2")]);
+    let removee_key = key_from_nibbles("A0FFF");
+    check_trie_consistency_with_removee(keys, removee_key);
   }
 
   #[test]
   fn test_case6_collapse_with_parent_extension_and_child_leaf() {
-    let keys = vec![(
-      b256!("0xAB10000000000000000000000000000000000000000000000000000000000000"),
-      b"1".to_vec(),
-    )];
-    let dummy_key = b256!("0xA0F0000000000000000000000000000000000000000000000000000000000000");
-    check_trie_consistency_with_dummy(keys, dummy_key);
+    let keys = create_test_data(&[("AB1", "1")]);
+    let removee_key = key_from_nibbles("A0F");
+    check_trie_consistency_with_removee(keys, removee_key);
   }
 }
