@@ -1,5 +1,5 @@
 [package]
-name = "mpt-test"
+name = "risc0-mpt-collapse"
 version = "0.1.0"
 edition = "2024"
 
