@@ -46,8 +46,15 @@ pub fn build_alloy_trie_with_proof<K: AsRef<[u8]> + Ord, V: AsRef<[u8]>>(
 mod tests {
   use risc0_ethereum_trie::Trie;
 
-  /// Helper function that checks root hash consistency for a given key set
-  /// with and without a removee key. Ensures compatibility with both Alloy and Risc0 implementations.
+  /// Validates Risc0 trie implementation against Alloy trie (reference implementation).
+  ///
+  /// Tests three scenarios:
+  /// 1. Build trie without removee key - verify Risc0 matches Alloy hash (baseline)
+  /// 2. Build trie with removee key - verify Risc0 matches Alloy hash (extended form)
+  /// 3. Dynamically remove the removee key from Risc0 trie and verify it matches baseline
+  ///
+  /// This ensures Risc0's dynamic removal produces correct results by comparing against
+  /// Alloy trie as the reference implementation.
   fn check_trie_consistency_with_removee(
     keys: Vec<(alloy_primitives::B256, Vec<u8>)>,
     removee_key: alloy_primitives::B256,
