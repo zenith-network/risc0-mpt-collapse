@@ -1,27 +1,23 @@
-use std::borrow::Borrow;
-
 use alloy_primitives::{FixedBytes, b256};
-use alloy_trie::proof::ProofRetainer;
 
-
-fn alloy_hash_with_rlp<K: AsRef<[u8]> + Ord, V: AsRef<[u8]>>(
+fn build_alloy_trie_with_proof<K: AsRef<[u8]> + Ord, V: AsRef<[u8]>>(
   items: &Vec<(K, V)>,
 ) -> (alloy_primitives::B256, Vec<alloy_primitives::Bytes>) {
   // Requirement of alloy-trie: items MUST be sorted by key nibbles.
-  let mut sorted_items: Vec<(&K, &V)> = items.iter().map(|(k, v)| (k, v)).collect();
-  sorted_items.sort_by(|a, b| a.borrow().0.cmp(&b.borrow().0));
+  let mut sorted_items = items.iter().collect::<Vec<_>>();
+  sorted_items.sort_by_key(|(k, _)| alloy_trie::Nibbles::unpack(k.as_ref()));
   //println!("Sorted items: {:?}", sorted_items);
 
-  // Me want to reatin proof for all nodes.
+  // Me want to retain proof for all nodes.
   let proof_key_paths = sorted_items
     .iter()
-    .map(|item| alloy_trie::Nibbles::unpack(item.borrow().0))
+    .map(|(k, _)| alloy_trie::Nibbles::unpack(k.as_ref()))
     .collect();
   //println!("Proof key paths: {:?}", proof_key_paths);
 
-  // Create alloy trie hasher, with proof reatiner.
+  // Create alloy trie hasher, with proof retainer.
   let hb = alloy_trie::HashBuilder::default();
-  let proof_retainer = ProofRetainer::new(proof_key_paths);
+  let proof_retainer = alloy_trie::proof::ProofRetainer::new(proof_key_paths);
   let mut hb = hb.with_proof_retainer(proof_retainer);
 
   // Push trie items.
@@ -70,7 +66,7 @@ fn main() {
   ];
   //println!("Items: {:?}", items);
 
-  let (alloy_hash, rlp_nodes) = alloy_hash_with_rlp(&items);
+  let (alloy_hash, rlp_nodes) = build_alloy_trie_with_proof(&items);
   println!("Alloy hash: {:?}", alloy_hash);
 
   // Build risc0 trie from RLP.
@@ -98,7 +94,7 @@ mod tests {
     keys_with_dummy.push((dummy_key, b"dummy".to_vec()));
 
     // Build trie without dummy key
-    let (alloy_hash_before, rlp_nodes_before) = super::alloy_hash_with_rlp(&keys);
+    let (alloy_hash_before, rlp_nodes_before) = super::build_alloy_trie_with_proof(&keys);
     println!("Alloy hash before: {:?}", alloy_hash_before);
 
     let r0_trie_before = Trie::from_rlp(rlp_nodes_before).unwrap();
@@ -107,7 +103,7 @@ mod tests {
     assert_eq!(alloy_hash_before, r0_hash_before);
 
     // Build trie with dummy key
-    let (alloy_hash_after, rlp_nodes_after) = super::alloy_hash_with_rlp(&keys_with_dummy);
+    let (alloy_hash_after, rlp_nodes_after) = super::build_alloy_trie_with_proof(&keys_with_dummy);
     println!("Alloy hash after: {:?}", alloy_hash_after);
 
     let r0_trie_after = Trie::from_rlp(rlp_nodes_after).unwrap();
