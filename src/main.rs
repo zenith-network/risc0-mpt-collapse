@@ -79,3 +79,149 @@ fn main() {
   println!("Risc0 root hash: {:?}", r0_hash);
   println!("Risc0 num nodes: {}", r0_trie.size());
 }
+
+#[cfg(test)]
+mod tests {
+  use alloy_primitives::b256;
+  use risc0_ethereum_trie::Trie;
+
+  /// Helper function that checks root hash consistency for a given key set
+  /// with and without a dummy key. Ensures compatibility with both Alloy and Risc0 implementations.
+  fn check_trie_consistency_with_dummy(
+    test_name: &str,
+    keys: Vec<(alloy_primitives::B256, Vec<u8>)>,
+    dummy_key: alloy_primitives::B256,
+  ) {
+    println!("\n=== Running test: {} ===", test_name);
+
+    let mut keys_with_dummy = keys.clone();
+    keys_with_dummy.push((dummy_key, b"dummy".to_vec()));
+
+    // Build trie without dummy key
+    let (alloy_hash_before, rlp_nodes_before) = super::alloy_hash_with_rlp(&keys);
+    println!("Alloy hash before: {:?}", alloy_hash_before);
+
+    let r0_trie_before = Trie::from_rlp(rlp_nodes_before).unwrap();
+    let r0_hash_before = r0_trie_before.hash_slow();
+    println!("Risc0 root hash before: {:?}", r0_hash_before);
+    assert_eq!(alloy_hash_before, r0_hash_before);
+
+    // Build trie with dummy key
+    let (alloy_hash_after, rlp_nodes_after) = super::alloy_hash_with_rlp(&keys_with_dummy);
+    println!("Alloy hash after: {:?}", alloy_hash_after);
+
+    let r0_trie_after = Trie::from_rlp(rlp_nodes_after).unwrap();
+    let r0_hash_after = r0_trie_after.hash_slow();
+    println!("Risc0 root hash after: {:?}", r0_hash_after);
+    assert_eq!(alloy_hash_after, r0_hash_after);
+
+    // Remove dummy key from Risc0 trie and compare
+    let mut r0_trie_modified = r0_trie_after;
+    let is_removed = r0_trie_modified.remove(&dummy_key);
+    assert_eq!(true, is_removed);
+    let r0_hash_modified = r0_trie_modified.hash_slow();
+    println!(
+      "Risc0 root hash after dummy key removal: {:?}",
+      r0_hash_modified
+    );
+    assert_eq!(r0_hash_modified, r0_hash_before);
+  }
+
+  #[test]
+  fn test_case1_branch_orphaned_branch_branch() {
+    let keys = vec![
+      (
+        b256!("0xABC1000000000000000000000000000000000000000000000000000000000000"),
+        b"1".to_vec(),
+      ),
+      (
+        b256!("0xABD2000000000000000000000000000000000000000000000000000000000000"),
+        b"2".to_vec(),
+      ),
+      (
+        b256!("0xE999000000000000000000000000000000000000000000000000000000000000"),
+        b"3".to_vec(),
+      ),
+    ];
+    let dummy_key = b256!("0xA0FF000000000000000000000000000000000000000000000000000000000000");
+    check_trie_consistency_with_dummy("case1_branch_orphaned_branch_branch", keys, dummy_key);
+  }
+
+  #[test]
+  fn test_case2_branch_orphaned_branch_extension() {
+    let keys = vec![
+      (
+        b256!("0xAB3C100000000000000000000000000000000000000000000000000000000000"),
+        b"1".to_vec(),
+      ),
+      (
+        b256!("0xAB3D200000000000000000000000000000000000000000000000000000000000"),
+        b"2".to_vec(),
+      ),
+      (
+        b256!("0xE999900000000000000000000000000000000000000000000000000000000000"),
+        b"3".to_vec(),
+      ),
+    ];
+    let dummy_key = b256!("0xA0FFF00000000000000000000000000000000000000000000000000000000000");
+    check_trie_consistency_with_dummy("case2_branch_orphaned_branch_extension", keys, dummy_key);
+  }
+
+  #[test]
+  fn test_case3_branch_orphaned_branch_leaf() {
+    let keys = vec![
+      (
+        b256!("0xAB10000000000000000000000000000000000000000000000000000000000000"),
+        b"1".to_vec(),
+      ),
+      (
+        b256!("0xE990000000000000000000000000000000000000000000000000000000000000"),
+        b"2".to_vec(),
+      ),
+    ];
+    let dummy_key = b256!("0xA0F0000000000000000000000000000000000000000000000000000000000000");
+    check_trie_consistency_with_dummy("case3_branch_orphaned_branch_leaf", keys, dummy_key);
+  }
+
+  #[test]
+  fn test_case4_extension_orphaned_branch_branch() {
+    let keys = vec![
+      (
+        b256!("0xABC1000000000000000000000000000000000000000000000000000000000000"),
+        b"1".to_vec(),
+      ),
+      (
+        b256!("0xABD2000000000000000000000000000000000000000000000000000000000000"),
+        b"2".to_vec(),
+      ),
+    ];
+    let dummy_key = b256!("0xA0FF000000000000000000000000000000000000000000000000000000000000");
+    check_trie_consistency_with_dummy("case4_extension_orphaned_branch_branch", keys, dummy_key);
+  }
+
+  #[test]
+  fn test_case5_extension_orphaned_branch_extension() {
+    let keys = vec![
+      (
+        b256!("0xAB3C100000000000000000000000000000000000000000000000000000000000"),
+        b"1".to_vec(),
+      ),
+      (
+        b256!("0xAB3D200000000000000000000000000000000000000000000000000000000000"),
+        b"2".to_vec(),
+      ),
+    ];
+    let dummy_key = b256!("0xA0FFF00000000000000000000000000000000000000000000000000000000000");
+    check_trie_consistency_with_dummy("case5_extension_orphaned_branch_extension", keys, dummy_key);
+  }
+
+  #[test]
+  fn test_case6_extension_orphaned_branch_leaf() {
+    let keys = vec![(
+      b256!("0xAB10000000000000000000000000000000000000000000000000000000000000"),
+      b"1".to_vec(),
+    )];
+    let dummy_key = b256!("0xA0F0000000000000000000000000000000000000000000000000000000000000");
+    check_trie_consistency_with_dummy("case6_extension_orphaned_branch_leaf", keys, dummy_key);
+  }
+}
