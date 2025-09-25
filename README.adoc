@@ -7,7 +7,7 @@ This repository is an effort to:
 - point out operations performed by `risc0-ethereum-trie`
 - cross-check such cases with `risc0-ethereum-trie` implementation against `alloy-trie`.
 
-== Scenarios
+== Test Scenarios
 
 What happens to the orphaned branch is subject to its only child and its parent. Since there are 3 types of nodes in Ethereum MPT - branch, extension and leaf - we should analyze the following scenarios:
 
@@ -20,7 +20,7 @@ What happens to the orphaned branch is subject to its only child and its parent.
 
 NOTE: Cases where "orphaned branch" is a root node is valid too, but it is already covered in above "superset".
 
-Each case will be cross-checked between `risc0-ethereum-trie` and `alloy-trie` implementations.
+Each case will be cross-checked between `risc0-ethereum-trie` and `alloy-trie` implementations. Trie structure will be confirmed by debug printing Risc0 trie nodes - not covered here.
 
 === ✅ Case 1: branch -> orphaned branch -> branch
 
@@ -151,3 +151,11 @@ image::./assets/case6-before.svg[width=800, height=450]
 . Parent extension `A` merges with leaf `B1` - https://github.com/risc0/risc0-ethereum/blob/4a0f35ddccfb584493e751fe9e5f6515ec37c8c2/crates/trie/src/mpt/node.rs#L216-L219[code]
 
 image::./assets/case6-after.svg[width=800, height=450]
+
+== Conclusion
+
+Risc0 trie implementation covers all possible collapsing scenarios, and the operations performed are consistent with `alloy-trie` implementation.
+
+== Next steps
+
+We could test non-happy paths, for example expect crash during collapsing branch with one unresolved child (represented by digest node). Spoiler: Risc0 handles it correctly, contrary to implementation in SP1's RSP.
