@@ -43,3 +43,24 @@ image::./assets/case1-before.svg[width=800, height=450]
 . Turn orphaned branch `B` into extension `B` - https://github.com/risc0/risc0-ethereum/blob/4a0f35ddccfb584493e751fe9e5f6515ec37c8c2/crates/trie/src/mpt/node.rs#L257-L262[code]
 
 image::./assets/case1-after.svg[width=800, height=450]
+
+=== ✅ Case 3: branch -> orphaned branch -> leaf
+
+Example keys:
+
+[source]
+----
+0xAB1
+0xA0F // <- just removed
+0xE99
+----
+
+Trie representation:
+
+image::./assets/case3-before.svg[width=800, height=450]
+
+**Collapsing process:**
+
+. Turn orphaned branch `B` into child leaf prefixed by consumed `B` nibble - https://github.com/risc0/risc0-ethereum/blob/4a0f35ddccfb584493e751fe9e5f6515ec37c8c2/crates/trie/src/mpt/node.rs#L245-L250[code]
+
+image::./assets/case3-after.svg[width=800, height=450]
