@@ -1,15 +1,18 @@
 = Ethereum MPT Collapse - Tests for Risc0 Implementation
 
-Ethereum's data structure is a **modified Merkle-Patricia Trie**, implemented by multiple clients e.g. Geth, Reth. Unfortunately, there are not many resources discussing trie implementation internals, especially the **collapsing** - process of bringing back the canonical form after branch is left with one child, so called **orphaned branch**.
+Ethereum's core data structure is a **modified Merkle-Patricia Trie (MPT)**, implemented by multiple clients (e.g. Geth, Reth). Unfortunately, there are limited resources discussing the internals of trie implementation - especially the **collapsing** process: the restoration of the canonical form when a branch is left with a single child, forming a so-called **orphaned branch**.
 
 This repository is an effort to:
-- analyze possible cases for collapsing
-- point out operations performed by `risc0-ethereum-trie`
-- cross-check such cases with `risc0-ethereum-trie` implementation against `alloy-trie`.
+
+- Analyze possible cases of collapsing.
+- Point out operations performed by `risc0-ethereum-trie`.
+- Cross-check these cases against `alloy-trie` implementation.
+
+TIP: You can reproduce all results by running `cargo test` - all the scenarios below are implemented as https://github.com/zenith-network/risc0-mpt-collapse/blob/master/src/lib.rs[unit tests].
 
 == Test Scenarios
 
-What happens to the orphaned branch is subject to its only child and its parent. Since there are 3 types of nodes in Ethereum MPT - branch, extension and leaf - we should analyze the following scenarios:
+The behavior of an orphaned branch depends on its only child and its parent. Since Ethereum MPT consists of 3 node types - **branch**, **extension** and **leaf** - the following combinations should be analyzed:
 
 - branch -> orphaned branch -> branch
 - branch -> orhpaned branch -> extension
@@ -18,9 +21,9 @@ What happens to the orphaned branch is subject to its only child and its parent.
 - extension -> orhpaned branch -> extension
 - extension -> orhpaned branch -> leaf
 
-NOTE: Cases where "orphaned branch" is a root node is valid too, but it is already covered in above "superset".
+NOTE: Cases where the "orphaned branch" is the root node are valid too, but already covered in the above superset.
 
-Each case will be cross-checked between `risc0-ethereum-trie` and `alloy-trie` implementations. Trie structure will be confirmed by debug printing Risc0 trie nodes - not covered here.
+Each case is cross-checked between `risc0-ethereum-trie` and `alloy-trie` implementations. Trie structure is additionally confirmed by debug printing Risc0 trie nodes (not shown here).
 
 === ✅ Case 1: branch -> orphaned branch -> branch
 
@@ -154,8 +157,9 @@ image::./assets/case6-after.svg[width=800, height=450]
 
 == Conclusion
 
-Risc0 trie implementation covers all possible collapsing scenarios, and the operations performed are consistent with `alloy-trie` implementation.
+The Risc0 trie implementation - `risc0-ethereum-trie` - correctly handles all possible collapsing scenarios, with the root hash consistent with the `alloy-trie` implementation.
 
 == Next steps
 
-We could test non-happy paths, for example expect crash during collapsing branch with one unresolved child (represented by digest node). Spoiler: Risc0 handles it correctly, contrary to implementation in SP1's RSP.
+We could test non-happy paths - for example, triggering a crash when collapsing a branch with one unresolved child (represented by digest node).
+**Spoiler:** Risc0 handles this correctly, unlike the implementation in SP1's RSP.
