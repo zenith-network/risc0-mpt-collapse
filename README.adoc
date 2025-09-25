@@ -65,7 +65,7 @@ image::./assets/case2-before.svg[width=800, height=450]
 
 **Collapsing process:**
 
-. Turn orphaned branch `B` into child extension `3` prefixed by consumed `B` nibble - https://github.com/risc0/risc0-ethereum/blob/4a0f35ddccfb584493e751fe9e5f6515ec37c8c2/crates/trie/src/mpt/node.rs#L251-L256[code]
+. Turn orphaned branch `B` into child extension `3`, prefixed by the consumed `B` nibble - https://github.com/risc0/risc0-ethereum/blob/4a0f35ddccfb584493e751fe9e5f6515ec37c8c2/crates/trie/src/mpt/node.rs#L251-L256[code]
 
 image::./assets/case2-after.svg[width=800, height=450]
 
@@ -86,7 +86,7 @@ image::./assets/case3-before.svg[width=800, height=450]
 
 **Collapsing process:**
 
-. Turn orphaned branch `B` into child leaf prefixed by consumed `B` nibble - https://github.com/risc0/risc0-ethereum/blob/4a0f35ddccfb584493e751fe9e5f6515ec37c8c2/crates/trie/src/mpt/node.rs#L245-L250[code]
+. Turn orphaned branch `B` into child leaf `1`, prefixed by the consumed `B` nibble - https://github.com/risc0/risc0-ethereum/blob/4a0f35ddccfb584493e751fe9e5f6515ec37c8c2/crates/trie/src/mpt/node.rs#L245-L250[code]
 
 image::./assets/case3-after.svg[width=800, height=450]
 
@@ -108,7 +108,7 @@ image::./assets/case4-before.svg[width=800, height=450]
 **Collapsing process:**
 
 . Turn orphaned branch `B` into extension `B` - https://github.com/risc0/risc0-ethereum/blob/4a0f35ddccfb584493e751fe9e5f6515ec37c8c2/crates/trie/src/mpt/node.rs#L257-L262[code]
-. Parent extension `A` merges with extension `B` https://github.com/risc0/risc0-ethereum/blob/4a0f35ddccfb584493e751fe9e5f6515ec37c8c2/crates/trie/src/mpt/node.rs#L220-L223[code]
+. Merge parent extension `A` with extension `B` https://github.com/risc0/risc0-ethereum/blob/4a0f35ddccfb584493e751fe9e5f6515ec37c8c2/crates/trie/src/mpt/node.rs#L220-L223[code]
 
 image::./assets/case4-after.svg[width=800, height=450]
 
@@ -129,8 +129,8 @@ image::./assets/case5-before.svg[width=800, height=450]
 
 **Collapsing process:**
 
-. Turn orphaned branch `B` into child extension prefixed by consumed `B` - https://github.com/risc0/risc0-ethereum/blob/4a0f35ddccfb584493e751fe9e5f6515ec37c8c2/crates/trie/src/mpt/node.rs#L251-L256[code]
-. Parent extension `A` merges with extension `B3` https://github.com/risc0/risc0-ethereum/blob/4a0f35ddccfb584493e751fe9e5f6515ec37c8c2/crates/trie/src/mpt/node.rs#L220-L223[code]
+. Turn orphaned branch `B` into child extension `3`, prefixed by the consumed `B` - https://github.com/risc0/risc0-ethereum/blob/4a0f35ddccfb584493e751fe9e5f6515ec37c8c2/crates/trie/src/mpt/node.rs#L251-L256[code]
+. Merge parent extension `A` with extension `B3` https://github.com/risc0/risc0-ethereum/blob/4a0f35ddccfb584493e751fe9e5f6515ec37c8c2/crates/trie/src/mpt/node.rs#L220-L223[code]
 
 image::./assets/case5-after.svg[width=800, height=450]
 
@@ -150,10 +150,22 @@ image::./assets/case6-before.svg[width=800, height=450]
 
 **Collapsing process:**
 
-. Turn orphaned branch `B` into child leaf `1` prefixed by consumed `B` - https://github.com/risc0/risc0-ethereum/blob/4a0f35ddccfb584493e751fe9e5f6515ec37c8c2/crates/trie/src/mpt/node.rs#L245-L250[code]
-. Parent extension `A` merges with leaf `B1` - https://github.com/risc0/risc0-ethereum/blob/4a0f35ddccfb584493e751fe9e5f6515ec37c8c2/crates/trie/src/mpt/node.rs#L216-L219[code]
+. Turn orphaned branch `B` into child leaf `1`, prefixed by the consumed `B` - https://github.com/risc0/risc0-ethereum/blob/4a0f35ddccfb584493e751fe9e5f6515ec37c8c2/crates/trie/src/mpt/node.rs#L245-L250[code]
+. Merge parent extension `A` with leaf `B1` - https://github.com/risc0/risc0-ethereum/blob/4a0f35ddccfb584493e751fe9e5f6515ec37c8c2/crates/trie/src/mpt/node.rs#L216-L219[code]
 
 image::./assets/case6-after.svg[width=800, height=450]
+
+== Summary of Collapsing Rules
+
+We could summarize the collapsing rules for Ethereum MPT as follows.
+
+* **When a branch is left with only one child**, it is collapsed into:
+** an **extension** if the child is a branch or extension,
+** a **leaf** if the child is a leaf.
+
+* **If the parent of the orphaned branch is an extension**, then after collapsing, the parent and child are merged into a single extension or leaf node with concatenated paths.
+
+These rules ensure that the trie maintains a compact, canonical structure after deletions.
 
 == Conclusion
 
